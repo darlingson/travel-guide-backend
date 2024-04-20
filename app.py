@@ -33,3 +33,22 @@ def getDestinationImage():
     full_path = "/home/Darlingson/mysite/travel-app/images/" + image_name + ".jpeg"
 
     return send_file(full_path, mimetype='image/gif')
+@app.route("/destinations/recommendations")
+def getRecommendations():
+    con = connectDB()
+    cur = con.cursor()
+    cur.execute("SELECT * FROM places")
+    rv = cur.fetchall()
+    json_data = []
+    row_headers = [x[0] for x in cur.description] #extracting row headers
+    for result in rv:
+        row_data = dict(zip(row_headers,result))
+        json_data.append(row_data)
+    random.Random(random_seed(6)).shuffle(json_data)
+    return jsonify(json_data)
+
+def random_seed(length):
+    random.seed()  # Initialize the random number generator
+    min_value = 10**(length - 1)
+    max_value = 9 * min_value + (min_value - 1)
+    return random.randint(min_value, max_value)
