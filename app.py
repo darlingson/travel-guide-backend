@@ -28,7 +28,7 @@ def getDestination():
     return jsonify(json_data)
   
 @app.route("/destination/image")
-def getPoster():
+def getDestinationImage():
     image_name = request.args.get("path")
     full_path = "/home/Darlingson/mysite/travel-app/images/" + image_name + ".jpeg"
 
