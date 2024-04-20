@@ -80,3 +80,14 @@ def getSpotlight():
     except Exception as e:
         return jsonify({'error': str(e)})
 
+@app.route("/destinations/<id>")
+def getDestinationById(id):
+    cur = db.cursor ()
+    cur.execute("SELECT * FROM places WHERE id = %s", (id,))
+    rv = cur.fetchall()
+    json_data = []
+    row_headers = [x[0] for x in cur.description] #extracting row headers
+    for result in rv:
+        row_data = dict(zip(row_headers,result))
+        json_data.append(row_data)
+    return jsonify(json_data)
