@@ -52,3 +52,31 @@ def random_seed(length):
     min_value = 10**(length - 1)
     max_value = 9 * min_value + (min_value - 1)
     return random.randint(min_value, max_value)
+@app.route("/destinations/spotlight")
+def getSpotlight():
+    try:
+        con = connectDB()
+        cur = con.cursor()
+        cur.execute("SELECT * FROM places")
+        all_entries = cur.fetchall()
+        if all_entries:
+            random_entry = random.choice(all_entries)
+            # Assuming the columns in the 'places' table are 'id', 'name', 'description', 'district', 'location', 'link', 'latitude', 'longitude', 'image_paths', and 'image_copyrite_holders'
+            entry_dict = {
+                'id': random_entry[0],
+                'name': random_entry[1],
+                'description': random_entry[2],
+                'district': random_entry[3],
+                'location': random_entry[4],
+                'link': random_entry[5],
+                'latitude': random_entry[6],
+                'longitude': random_entry[7],
+                'image_paths': random_entry[8],
+                'image_copyrite_holders': random_entry[9]
+            }
+            return jsonify(entry_dict)
+        else:
+            return jsonify({'message': 'No entries found in the database'})
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
