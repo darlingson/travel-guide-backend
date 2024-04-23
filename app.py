@@ -1,6 +1,9 @@
 from flask import Flask, jsonify, request, render_template, send_file
 from flask_sqlalchemy import SQLAlchemy
 import random
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+# from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from itsdangerous import URLSafeTimedSerializer as Serializer
 # from flask import Flask
 from flask_bootstrap import Bootstrap
 # from flask import jsonify
@@ -12,7 +15,16 @@ from flask_bootstrap import Bootstrap
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://username:password@host/databasename'
+app.config['SECRET_KEY'] = 'secret_key'
+app.config['TOKEN_EXPIRATION_SECONDS'] = 3600 
 db = SQLAlchemy(app)
+login_manager = LoginManager(app)
+
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True)
+    password = db.Column(db.String(100))
 
 class Zochitika(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -113,6 +125,56 @@ def getSpotlight():
             return jsonify({'message': 'No entries found in the database'})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({'error': 'Unauthorized access'}), 401
+
+# Generate Token
+def generate_token(user_id):
+    s = Serializer(app.config['SECRET_KEY'], expires_in=app.config['TOKEN_EXPIRATION_SECONDS'])
+    return s.dumps({'user_id': user_id}).decode('utf-8')
+
+# Routes for login, register, and logout
+@app.route('/register', methods=['POST'])
+def register():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+    if User.query.filter_by(username=username).first():
+        return jsonify({'error': 'Username already exists'}), 400
+    new_user = User(username=username, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+    return jsonify({'message': 'Registration successful'}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = request.form.get('username')
+    password = request.form.get('password')
+    user = User.query.filter_by(username=username).first()
+    if user and user.password == password:
+        login_user(user)
+        token = generate_token(user.id)
+        return jsonify({'message': 'Login successful', 'token': token}), 200
+    return jsonify({'error': 'Invalid username or password'}), 401
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logout successful'}), 200
+
+# Protected route example
+@app.route('/protected')
+@login_required
+def protected():
+    return jsonify({'message': f'Hello, {current_user.username}! This is a protected route'}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)
