@@ -91,3 +91,59 @@ def getDestinationById(id):
         row_data = dict(zip(row_headers,result))
         json_data.append(row_data)
     return jsonify(json_data)
+@app.route('/login', methods=['POST'])
+def login():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username or not password:
+            return jsonify({'message': 'Please provide both username and password'}), 400
+
+        db = connectDB()
+        cursor = db.cursor()
+        cursor.execute('SELECT * FROM accounts WHERE username = %s AND password = %s', (username, password,))
+        account = cursor.fetchone()
+
+        if account:
+            response = {
+                'message': 'Logged in successfully!',
+                'user_id': account[0],
+                'username': account[1]
+            }
+            db.close()
+            return jsonify(response), 200
+        else:
+            db.close()
+            return jsonify({'message': 'Incorrect username or password'}), 401
+
+@app.route('/logout')
+def logout():
+    # Clear session
+    return jsonify({'message': 'Logged out successfully'}), 200
+
+@app.route('/register', methods=['POST'])
+def register():
+    if request.method == 'POST':
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        email = data.get('email')
+
+        if not username or not password or not email:
+            return jsonify({'message': 'Please provide username, password, and email'}), 400
+
+        db = connectDB()
+        cursor = db.cursor()
+        cursor.execute('SELECT * FROM accounts WHERE username = %s', (username,))
+        account = cursor.fetchone()
+
+        if account:
+            db.close()
+            return jsonify({'message': 'Account already exists'}), 409
+
+        cursor.execute('INSERT INTO accounts (username, password, email) VALUES (%s, %s, %s)',
+                       (username, password, email))
+        db.close()
+        return jsonify({'message': 'You have successfully registered'}), 201
