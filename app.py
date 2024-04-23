@@ -90,8 +90,8 @@ def getDestinationById(id):
     for result in rv:
         row_data = dict(zip(row_headers,result))
         json_data.append(row_data)
-    return jsonify(json_data)
-@app.route('/login', methods=['POST'])
+    return jsonify(json_data)@app.route('/login', methods=['POST'])
+
 def login():
     if request.method == 'POST':
         data = request.get_json()
@@ -107,20 +107,20 @@ def login():
         account = cursor.fetchone()
 
         if account:
-            response = {
-                'message': 'Logged in successfully!',
-                'user_id': account[0],
-                'username': account[1]
-            }
+            session['loggedin'] = True
+            session['id'] = account[0]
+            session['username'] = account[1]
             db.close()
-            return jsonify(response), 200
+            return jsonify({'message': 'Logged in successfully!'}), 200
         else:
             db.close()
             return jsonify({'message': 'Incorrect username or password'}), 401
 
 @app.route('/logout')
 def logout():
-    # Clear session
+    session.pop('loggedin', None)
+    session.pop('id', None)
+    session.pop('username', None)
     return jsonify({'message': 'Logged out successfully'}), 200
 
 @app.route('/register', methods=['POST'])
