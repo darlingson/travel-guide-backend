@@ -125,6 +125,20 @@ def getSpotlight():
             return jsonify({'message': 'No entries found in the database'})
     except Exception as e:
         return jsonify({'error': str(e)})
+@app.route('/destinations/search', methods=['GET'])
+def search_destination():
+    keyword = request.args.get('keyword')
+    if not keyword:
+        return jsonify({'error': 'Keyword parameter is required'}), 400
+
+    results = Places.query.filter(Places.name.ilike(f'%{keyword}%')).all()
+
+    if results:
+        destinations = [
+            {'id': dest.id, 'name': dest.name, 'location': dest.location,'district':dest.district,'image_paths':dest.image_paths} for dest in results]
+        return jsonify({'results': destinations}), 200
+    else:
+        return jsonify({'message': 'No destinations found for the given keyword'}), 404
 
 @login_manager.user_loader
 def load_user(user_id):
