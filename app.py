@@ -17,14 +17,15 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://username:password@host/databasename'
 app.config['SECRET_KEY'] = 'secret_key'
 app.config['TOKEN_EXPIRATION_SECONDS'] = 3600 
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_recycle' : 280}
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 
-
-class User(UserMixin, db.Model):
+class Users(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True)
     password = db.Column(db.String(100))
+
 
 class Zochitika(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -160,9 +161,9 @@ def register():
     password = request.form.get('password')
     if not username or not password:
         return jsonify({'error': 'Username and password are required'}), 400
-    if User.query.filter_by(username=username).first():
+    if Users.query.filter_by(username=username).first():
         return jsonify({'error': 'Username already exists'}), 400
-    new_user = User(username=username, password=password)
+    new_user = Users(username=username, password=password)
     db.session.add(new_user)
     db.session.commit()
     return jsonify({'message': 'Registration successful'}), 201
@@ -171,7 +172,7 @@ def register():
 def login():
     username = request.form.get('username')
     password = request.form.get('password')
-    user = User.query.filter_by(username=username).first()
+    user = Users.query.filter_by(username=username).first()
     if user and user.password == password:
         login_user(user)
         token = generate_token(user.id)
@@ -189,6 +190,8 @@ def logout():
 @login_required
 def protected():
     return jsonify({'message': f'Hello, {current_user.username}! This is a protected route'}), 200
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
